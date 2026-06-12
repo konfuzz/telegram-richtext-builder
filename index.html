@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TG Rich Message Sender</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0d1117; color: #e6edf3; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+}
+img {
+  max-width: 100%;
+}
+.container { max-width: 960px; width: 100%; padding: 24px; }
+h1 { font-size: 24px; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+h1 small { font-size: 14px; color: #8b949e; font-weight: 400; }
+.subtitle { color: #8b949e; font-size: 14px; margin-bottom: 24px; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 16px; }
+.form-row { display: flex; gap: 12px; margin-bottom: 16px; }
+.form-row .field { flex: 1; }
+label { display: block; font-size: 13px; font-weight: 600; color: #8b949e; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .05em; }
+input, textarea, select {
+  width: 100%; padding: 8px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px;
+  color: #e6edf3; font-size: 14px; font-family: inherit; outline: none; transition: border .2s;
+}
+input:focus, textarea:focus { border-color: #58a6ff; }
+textarea { resize: vertical; min-height: 100px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 13px; line-height: 1.5; }
+.editor-wrap { display: flex; gap: 12px; }
+.editor-pane, .preview-pane { flex: 1; min-width: 0; }
+.editor-pane textarea { min-height: 400px; height: 500px; }
+.preview-pane {
+  background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; overflow-y: auto;
+  min-height: 400px; max-height: 500px; line-height: 1.6; word-wrap: break-word;
+}
+.preview-pane h1, .preview-pane h2, .preview-pane h3, .preview-pane h4, .preview-pane h5, .preview-pane h6 { margin: 10px 0 6px; font-weight: 600; }
+.preview-pane h1 { font-size: 22px; border-bottom: 1px solid #30363d; padding-bottom: 6px; }
+.preview-pane h2 { font-size: 19px; }
+.preview-pane h3 { font-size: 16px; }
+.preview-pane h4 { font-size: 15px; }
+.preview-pane p { margin: 8px 0; }
+.preview-pane ul, .preview-pane ol { padding-left: 24px; margin: 8px 0; }
+.preview-pane li { margin: 3px 0; }
+.preview-pane code { background: #30363d; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'SFMono-Regular', Consolas, monospace; }
+.preview-pane pre { background: #30363d; padding: 14px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
+.preview-pane pre code { background: none; padding: 0; border-radius: 0; }
+.preview-pane blockquote { border-left: 3px solid #58a6ff; padding: 4px 0 4px 14px; color: #8b949e; margin: 10px 0; }
+.preview-pane a { color: #58a6ff; text-decoration: none; }
+.preview-pane a:hover { text-decoration: underline; }
+.preview-pane table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 14px; }
+.preview-pane th, .preview-pane td { border: 1px solid #30363d; padding: 6px 10px; text-align: left; }
+.preview-pane th { background: #21262d; font-weight: 600; }
+.preview-pane hr { border: none; border-top: 1px solid #30363d; margin: 16px 0; }
+.preview-placeholder { color: #484f58; text-align: center; padding: 80px 20px; font-style: italic; }
+.header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.btn {
+  padding: 8px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background .2s, opacity .2s; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.btn-primary { background: #238636; color: #fff; }
+.btn-primary:hover { background: #2ea043; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+.btn-secondary:hover { background: #30363d; }
+.status { margin-top: 16px; padding: 12px 16px; border-radius: 6px; font-size: 14px; display: none; }
+.status.success { display: block; background: #1a3a2a; border: 1px solid #238636; color: #7ee787; }
+.status.error { display: block; background: #3a1a1a; border: 1px solid #da3633; color: #ff7b72; }
+.status.loading { display: block; background: #1a2a3a; border: 1px solid #1f6feb; color: #79c0ff; }
+.status .msg-label { font-weight: 600; margin-bottom: 4px; }
+.status .msg-detail { opacity: .85; font-size: 13px; }
+.extra-options { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.extra-options label { display: flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-weight: 400; cursor: pointer; }
+.extra-options input[type="checkbox"] { width: auto; }
+
+/* -- Telegram-specific styles -- */
+
+/* Spoiler */
+.tg-spoiler {
+  background: #21262d; color: transparent; border-radius: 4px; padding: 1px 4px;
+  cursor: pointer; transition: color .25s, background .25s; user-select: none;
+}
+.tg-spoiler:hover { background: #30363d; }
+.tg-spoiler.revealed, .tg-spoiler.revealed:hover { color: inherit; background: rgba(88,166,255,.15); cursor: default; user-select: auto; }
+
+/* Footnotes */
+.tg-footnotes { margin-top: 16px; padding-top: 12px; border-top: 1px solid #30363d; font-size: 13px; color: #8b949e; }
+.tg-footnotes .tg-fn { margin: 4px 0; }
+.tg-footnotes .tg-fn sup { color: #58a6ff; margin-right: 4px; }
+.tg-fnref { color: #58a6ff; font-size: 12px; cursor: pointer; }
+
+/* Marked / highlight */
+mark { background: #bb8009; color: #0d1117; padding: 1px 4px; border-radius: 3px; }
+
+/* Math */
+tg-math {
+  background: #1c2333; border: 1px solid #30363d; border-radius: 4px;
+  padding: 1px 6px; font-family: 'Times New Roman', serif; font-style: italic; font-size: 14px;
+}
+tg-math-block {
+  display: block; background: #1c2333; border: 1px solid #30363d; border-radius: 6px;
+  padding: 14px; margin: 10px 0; font-family: 'Times New Roman', serif; font-style: italic;
+  font-size: 16px; text-align: center; white-space: pre-wrap;
+}
+
+/* Date-time */
+.tg-datetime {
+  display: inline-block; background: #1f6feb22; border: 1px solid #1f6feb44; border-radius: 4px;
+  padding: 1px 6px; font-size: 13px; cursor: default;
+}
+
+/* Custom emoji */
+.tg-custom-emoji {
+  display: inline-block; width: 22px; height: 22px; line-height: 22px; text-align: center;
+  background: #30363d; border-radius: 4px; font-size: 16px; cursor: default; vertical-align: middle;
+}
+
+/* Media container */
+.tg-media-container { margin: 10px 0; }
+.tg-media { max-width: 100%; border-radius: 6px; display: block; }
+.tg-media-caption { font-size: 13px; color: #8b949e; margin-top: 4px; text-align: center; }
+.tg-media-fallback {
+  padding: 20px; background: #1c2333; border: 1px dashed #da3633; border-radius: 6px;
+  text-align: center; font-size: 14px; color: #ff7b72;
+}
+.tg-media-fallback code { font-size: 12px; word-break: break-all; }
+
+/* Figure with figcaption */
+figure { margin: 10px 0; text-align: center; }
+figure img { max-width: 100%; border-radius: 6px; }
+figcaption { font-size: 13px; color: #8b949e; margin-top: 4px; }
+figcaption cite { font-style: italic; color: #58a6ff; }
+
+/* Slideshow */
+.tg-slideshow {
+  display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 8px 4px; margin: 10px 0; scrollbar-width: thin;
+}
+.tg-slideshow::-webkit-scrollbar { height: 6px; }
+.tg-slideshow::-webkit-scrollbar-track { background: #21262d; border-radius: 3px; }
+.tg-slideshow::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+.tg-slideshow > * {
+  flex: 0 0 auto; scroll-snap-align: start; width: 280px; max-width: 80%;
+  border: 1px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.tg-slideshow > * video, .tg-slideshow > * img { width: 100%; display: block; }
+.tg-slideshow > .tg-media-container { margin: 0; }
+.tg-slideshow > .tg-media-fallback { margin: 0; min-height: 120px; display: flex; align-items: center; justify-content: center; }
+
+/* Collage */
+.tg-collage {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 10px 0;
+  border-radius: 8px; overflow: hidden;
+}
+.tg-collage > * { overflow: hidden; }
+.tg-collage > * video, .tg-collage > * img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tg-collage > .tg-media-container { margin: 0; }
+.tg-collage > .tg-media-fallback { display: flex; align-items: center; justify-content: center; min-height: 100px; }
+
+/* Details / collapsible */
+details { margin: 10px 0; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; }
+details summary {
+  padding: 10px 14px; background: #21262d; cursor: pointer; font-weight: 600;
+  user-select: none; list-style: none; display: flex; align-items: center; gap: 8px;
+}
+details summary::-webkit-details-marker { display: none; }
+details summary::before { content: '▶'; font-size: 12px; transition: transform .2s; }
+details[open] summary::before { content: '▼'; }
+details > :not(summary) { padding: 12px 14px; }
+
+/* Pull quote */
+.tg-pullquote {
+  display: block; border-left: 3px solid #bb8009; padding: 12px 16px; margin: 12px 0;
+  background: #1c2333; border-radius: 0 6px 6px 0; font-style: italic; font-size: 15px;
+}
+.tg-pullquote cite { display: block; margin-top: 6px; font-size: 13px; color: #8b949e; font-style: normal; }
+
+/* Footer */
+.tg-footer {
+  display: block; margin-top: 16px; padding-top: 12px; border-top: 1px solid #30363d;
+  font-size: 13px; color: #8b949e;
+}
+
+/* Map placeholder */
+.tg-map {
+  padding: 24px; background: #1c2333; border: 1px solid #30363d; border-radius: 6px;
+  text-align: center; margin: 10px 0; font-size: 14px; color: #8b949e;
+}
+
+/* Checklist / task list */
+.preview-pane ul li input[type="checkbox"] { margin-right: 6px; vertical-align: middle; }
+
+/* Audio in slideshow/collage */
+.tg-slideshow audio, .tg-collage audio { width: 100%; }
+
+@media (max-width: 750px) {
+  .form-row { flex-direction: column; }
+  .editor-wrap { flex-direction: column; }
+  .preview-pane { min-height: 250px; max-height: 300px; }
+  .editor-pane textarea { min-height: 250px; height: 300px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>TG Rich Message Sender <small>Bot API 10.1</small></h1>
+  <p class="subtitle">Send rich-text messages via Telegram Bot API (sendRichMessage)</p>
+
+  <div class="card">
+    <div class="form-row">
+      <div class="field">
+        <label for="token">Bot Token</label>
+        <input type="text" id="token" placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="chatId">Chat ID</label>
+        <input type="text" id="chatId" placeholder="@username or numeric ID">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="header-bar">
+      <label style="margin:0">Message (Markdown)</label>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" id="insertSample">Insert Sample</button>
+        <button class="btn btn-primary" id="sendBtn">Send</button>
+      </div>
+    </div>
+    <div class="editor-wrap">
+      <div class="editor-pane">
+        <textarea id="messageInput" placeholder="Enter Markdown text..."></textarea>
+      </div>
+      <div class="preview-pane" id="preview">
+        <div class="preview-placeholder">Preview</div>
+      </div>
+    </div>
+    <div class="extra-options">
+      <label><input type="checkbox" id="rtl"> RTL (справа налево)</label>
+      <label><input type="checkbox" id="skipEntities"> Skip entity auto-detection</label>
+      <label><input type="checkbox" id="disableNotify"> Silent</label>
+    </div>
+  </div>
+
+  <div id="status" class="status"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
+<script>
+const tokenInput = document.getElementById('token');
+const chatIdInput = document.getElementById('chatId');
+const messageInput = document.getElementById('messageInput');
+const preview = document.getElementById('preview');
+const sendBtn = document.getElementById('sendBtn');
+const statusEl = document.getElementById('status');
+const rtlCheck = document.getElementById('rtl');
+const skipEntitiesCheck = document.getElementById('skipEntities');
+const disableNotifyCheck = document.getElementById('disableNotify');
+const insertSampleBtn = document.getElementById('insertSample');
+
+/* ---- Telegram Rich Markdown Preprocessor ---- */
+function preprocessTG(md) {
+  md = md
+    .replace(/<tg-slideshow>\n?([\s\S]*?)\n?<\/tg-slideshow>/g, (_, content) =>
+      `<div class="tg-slideshow">\n${preprocessInner(content)}\n</div>`)
+    .replace(/<tg-collage>\n?([\s\S]*?)\n?<\/tg-collage>/g, (_, content) =>
+      `<div class="tg-collage">\n${preprocessInner(content)}\n</div>`)
+    .replace(/<(details)\s*(open)?>\n?([\s\S]*?)\n?<\/details>/g, (_, t, open, content) =>
+      `<details${open ? ' open' : ''}>\n${preprocessInner(content)}\n</details>`)
+    .replace(/<aside>([\s\S]*?)<\/aside>/g, (_, content) =>
+      `<aside class="tg-pullquote">${preprocessInner(content)}</aside>`)
+    .replace(/<footer>([\s\S]*?)<\/footer>/g, (_, content) =>
+      `<footer class="tg-footer">${preprocessInner(content)}</footer>`)
+    .replace(/<tg-map\s+lat="([^"]*)"\s+long="([^"]*)"\s+zoom="([^"]*)"\s*\/?>/g,
+      (_, lat, lon, zoom) => `<div class="tg-map">📍 <b>${lat}</b>, <b>${lon}</b> (zoom ${zoom})</div>`)
+    .replace(/<tg-thinking>([\s\S]*?)<\/tg-thinking>/g, (_, content) =>
+      `<div class="tg-thinking"><i>🧠 Thinking...</i><br>${content}</div>`);
+
+  md = preprocessInner(md);
+  return md;
+}
+
+function preprocessInner(text) {
+  text = text.replace(/\|\|([^|]+)\|\|/g, '<span class="tg-spoiler">$1</span>');
+  text = text.replace(/==([^=]+)==/g, '<mark>$1</mark>');
+  text = text.replace(/\$\$(.+?)\$\$/gs, '<tg-math-block>$1</tg-math-block>');
+  text = text.replace(/(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)/g, '<tg-math>$1</tg-math>');
+  text = text.replace(/```math\s*\n?([\s\S]*?)```/g, '<tg-math-block>$1</tg-math-block>');
+
+  text = text.replace(/!\[([^\]]*)\]\(tg:\/\/time\?([^)]+)\)/g, (_, alt, params) => {
+    const p = new URLSearchParams(params);
+    return `<span class="tg-datetime" title="unix:${p.get('unix')}, format:${p.get('format')}">${alt}</span>`;
+  });
+  text = text.replace(/!\[([^\]]*)\]\(tg:\/\/emoji\?id=(\d+)\)/g, (_, alt, id) =>
+    `<span class="tg-custom-emoji" title="Emoji ${id}">${alt || '🪄'}</span>`);
+
+  text = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, url) => {
+    const cleanUrl = url.replace(/\s+"[^"]*"$/, '').trim();
+    const title = url.match(/\s+"([^"]*)"$/)?.[1] || '';
+    if (/\.(mp4|webm|mov|avi|mkv)([?#]|$)/i.test(cleanUrl))
+      return `<div class="tg-media-container"><video src="${cleanUrl}" controls class="tg-media"></video>${title ? `<div class="tg-media-caption">${title}</div>` : ''}</div>`;
+    if (/\.(mp3|ogg|wav|flac|aac|m4a)([?#]|$)/i.test(cleanUrl))
+      return `<div class="tg-media-container"><audio src="${cleanUrl}" controls class="tg-media"></audio>${title ? `<div class="tg-media-caption">${title}</div>` : ''}</div>`;
+    if (/\.(gif)([?#]|$)/i.test(cleanUrl))
+      return title ? `<figure><img src="${cleanUrl}" alt="${alt || title}"><figcaption>${title}</figcaption></figure>` : `<img src="${cleanUrl}" alt="">`;
+    if (title)
+      return `<figure><img src="${cleanUrl}" alt="${alt || title}"><figcaption>${title}</figcaption></figure>`;
+    return match;
+  });
+
+  text = text.replace(/- \[( |x)\]/g, (_, chk) =>
+    `<input type="checkbox" disabled ${chk === 'x' ? 'checked' : ''} style="margin:0 4px 0 0;vertical-align:middle;width:14px;height:14px">`);
+
+  text = processFootnotes(text);
+
+  return text;
+}
+
+function processFootnotes(text) {
+  const defs = [];
+  text = text.replace(/\[(\^([^\]]+))\]\s*:\s+([\s\S]*?)(?=\n\n|\n\[|$)/g, (_, full, label, content) => {
+    defs.push({ label, content: content.trim() });
+    return '';
+  });
+  if (defs.length === 0) return text;
+  text = text.replace(/\[\^([^\]]+)\]/g, (_, label) => {
+    const idx = defs.findIndex(d => d.label === label);
+    if (idx === -1) return `[^${label}]`;
+    return `<sup class="tg-fnref"><a href="#fn-${idx}" style="color:#58a6ff;text-decoration:none">[${idx + 1}]</a></sup>`;
+  });
+  let fnHtml = '<div class="tg-footnotes">';
+  defs.forEach((d, i) => {
+    fnHtml += `<div class="tg-fn" id="fn-${i}"><sup>[${i + 1}]</sup> ${d.content}</div>`;
+  });
+  fnHtml += '</div>';
+  text += '\n\n' + fnHtml;
+  return text;
+}
+
+/* ---- Render ---- */
+function renderPreview() {
+  const md = messageInput.value.trim();
+  if (!md) {
+    preview.innerHTML = '<div class="preview-placeholder">Preview</div>';
+    return;
+  }
+  try {
+    const processed = preprocessTG(md);
+    const html = marked.parse(processed, { breaks: true, gfm: true });
+    preview.innerHTML = html;
+    initInteractions();
+  } catch (e) {
+    preview.innerHTML = `<div class="preview-placeholder">Rendering error: ${e.message}</div>`;
+  }
+}
+
+function initInteractions() {
+  preview.querySelectorAll('.tg-spoiler').forEach(el => {
+    el.addEventListener('click', () => el.classList.toggle('revealed'));
+  });
+}
+
+/* ---- Media error fallback ---- */
+preview.addEventListener('error', (e) => {
+  const t = e.target;
+  if (t.tagName === 'VIDEO' || t.tagName === 'AUDIO') {
+    const c = t.closest('.tg-media-container');
+    if (c) {
+      const url = t.currentSrc || t.src;
+      const type = t.tagName === 'VIDEO' ? '🎬 Video' : '🎵 Audio';
+      c.innerHTML = `<div class="tg-media-fallback">${type} failed to load: <code>${escapeHtml(url)}</code></div>`;
+    }
+  }
+}, true);
+
+function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+messageInput.addEventListener('input', renderPreview);
+renderPreview();
+
+/* ---- Sample ---- */
+insertSampleBtn.addEventListener('click', () => {
+  messageInput.value = `**bold text**
+__bold text__
+*italic text*
+_italic text_
+~~strikethrough text~~
+\`inline fixed-width code\`
+==marked text==
+||spoiler||
+
+[inline URL](https://t.me/)
+[inline e-mail](mailto:user@example.com)
+[inline phone number](tel:+123456789)
+[inline mention of a user](tg://user?id=123456789)
+![👍](tg://emoji?id=5368324170671202286)
+![22:45 tomorrow](tg://time?unix=1647531900&format=wDT)
+$x^2 + y^2$
+\\#hashtag $USD +12345678901, card: 4242 4242 4242 4242, https://t.me t.me a@t.me /command @username
+all the text above was on the same line
+
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
+
+Paragraph text
+
+\`\`\`python
+  print('pre-formatted fixed-width code block written in the Python programming language')
+\`\`\`
+
+---
+
+- unordered list item
+* unordered list item
++ unordered list item
+
+1. ordered list item
+2. ordered list item
+
+- [ ] task list item
+- [x] completed task list item
+
+>Block quotation started
+>
+>Block quotation continued on the next line
+>Block quotation continued on the same line
+>
+>The last line of the block quotation
+
+![](https://telegram.org/example/photo.jpg)
+![](https://telegram.org/example/video.mp4)
+![](https://telegram.org/example/audio.mp3)
+![](https://telegram.org/example/audio.ogg)
+![](https://telegram.org/example/animation.gif)
+
+![](https://telegram.org/example/photo.jpg "Photo caption")
+![](https://telegram.org/example/video.mp4 "Video caption")
+![](https://telegram.org/example/audio.mp3 "Audio caption")
+![](https://telegram.org/example/audio.ogg "Voice note caption")
+![](https://telegram.org/example/animation.gif "Animation caption")
+
+| Header 1 | Header 2 |
+|:---------|:--------:|
+| left     | center   |
+
+Text with a reference[^id1] and another one[^id2].
+
+[^id1]: Definition of the first footnote.
+[^id2]: Definition of the second footnote.
+
+$$E = mc^2$$
+
+\`\`\`math
+E = mc^2
+\`\`\`
+
+## Example Nested Syntax Report for _Q1_
+Intro with <u>underlined text</u>, ==marked text==, and $x^2 + y^2$.
+**Bold _italic <u>underlined italic bold</u> italic_ bold**
+<u>In inline tags, nested **markdown** is parsed</u>
+>Quote with **bold text, ~~strikethrough, and <tg-spoiler>spoiler</tg-spoiler>~~**, plus [a link](https://t.me/).
+
+- List item with \`code\`, <sup>superscript</sup>, <sub>subscript</sub>, and a footnote[^note]
+- Another item with **bold <tg-spoiler><code>spoiler code</code></tg-spoiler>**
+- Another item with ~~strikethrough and <ins>inserted text</ins>~~
+
+| Metric | Value |
+|:-------|------:|
+| Speed  | **42** <sup>ms</sup> |
+| Status | <tg-spoiler>ready</tg-spoiler> |
+
+[^note]: Footnote with _italic text_ and <u>HTML underline</u>.
+
+---
+
+# Details blocks can contain Markdown content:
+
+<details open><summary>Summary with **bold text**</summary>
+
+### Details heading
+- List item with _italic text_
+- List item with <tg-spoiler>spoiler</tg-spoiler>
+
+</details>
+
+# Collages and slideshows can contain Markdown media blocks:
+
+<tg-collage>
+
+![](https://telegram.org/example/photo.jpg)
+![](https://telegram.org/example/video.mp4)
+
+</tg-collage>
+
+<tg-slideshow>
+
+![](https://telegram.org/example/photo.jpg)
+![](https://telegram.org/example/video.mp4)
+
+</tg-slideshow>
+
+<u>underlined text</u>, <ins>underlined text</ins>
+<sub>subscript text</sub>
+<sup>superscript text</sup>
+<a name="chapter-1"></a>
+<aside>Pull quote<cite>The Author</cite></aside>
+<details open><summary>Title</summary>Content</details>
+<tg-map lat="41.9" long="12.5" zoom="14"/>`;
+  renderPreview();
+});
+
+/* ---- Send ---- */
+async function sendMessage() {
+  const token = tokenInput.value.trim();
+  const chatId = chatIdInput.value.trim();
+  const markdown = messageInput.value.trim();
+
+  if (!token) { showStatus('error', 'Error', 'Enter bot token'); return; }
+  if (!chatId) { showStatus('error', 'Error', 'Enter chat ID'); return; }
+  if (!markdown) { showStatus('error', 'Error', 'Enter message text'); return; }
+
+  showStatus('loading', 'Sending...', 'Sending message...');
+
+  const body = {
+    chat_id: chatId,
+    rich_message: { markdown: markdown },
+  };
+
+  if (rtlCheck.checked) body.rich_message.is_rtl = true;
+  if (skipEntitiesCheck.checked) body.rich_message.skip_entity_detection = true;
+  if (disableNotifyCheck.checked) body.disable_notification = true;
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendRichMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showStatus('success', 'Success!', `Message sent. ID: ${data.result.message_id}`);
+    } else {
+      showStatus('error', `Error ${data.error_code}`, data.description || 'Unknown error');
+    }
+  } catch (err) {
+    showStatus('error', 'Network error', err.message);
+  }
+}
+
+function showStatus(type, label, detail) {
+  statusEl.className = `status ${type}`;
+  statusEl.innerHTML = `<div class="msg-label">${label}</div><div class="msg-detail">${detail}</div>`;
+}
+
+sendBtn.addEventListener('click', sendMessage);
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendMessage();
+});
+</script>
+</body>
+</html>

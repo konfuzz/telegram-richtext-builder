@@ -1,6 +1,6 @@
 # Telegram RichText Builder
 
-A single-file HTML tool for composing and sending rich-text messages via the [Telegram Bot API `sendRichMessage`](https://core.telegram.org/bots/api#sendrichmessage) method (Bot API 10.1+).
+A single-file HTML tool for composing and sending [rich-text messages](https://core.telegram.org/bots/api#rich-messages) via the [Telegram Bot API `sendRichMessage`](https://core.telegram.org/bots/api#sendrichmessage) method (Bot API 10.1+).
 
 https://konfuzz.github.io/telegram-richtext-builder/
 
